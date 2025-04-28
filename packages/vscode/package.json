@@ -145,6 +145,13 @@
             "/path/to/your/schema.prisma"
           ],
           "description": "If you have a Prisma schema file in a custom path, you will need to provide said path `/path/to/your/schema.prisma` to run generate"
+        },
+        "prisma.configPath": {
+          "type": "string",
+          "examples": [
+            "/path/to/your/prisma.config.ts"
+          ],
+          "description": "If you have a Prisma config file in a custom path, you will need to provide the path, e.g., `/path/to/your/prisma.config.ts`."
         }
       }
     },

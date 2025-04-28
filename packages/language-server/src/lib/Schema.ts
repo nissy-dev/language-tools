@@ -11,6 +11,7 @@ import { Position, TextDocuments } from 'vscode-languageserver'
 import { TextDocument } from 'vscode-languageserver-textdocument'
 import { URI } from 'vscode-uri'
 import { getCurrentLine } from './ast'
+import { LSSettings } from './types'
 
 export type Line = {
   readonly document: SchemaDocument
@@ -58,8 +59,8 @@ type FindRegexpResult = {
 /**
  * Will try to load the prisma config file from the given path, default path or create a default config.
  */
-async function loadConfig(): Promise<PrismaConfigInternal> {
-  const { config, error, resolvedPath } = await loadConfigFromFile({})
+async function loadConfig(configPath?: string): Promise<PrismaConfigInternal> {
+  const { config, error, resolvedPath } = await loadConfigFromFile({ configFile: configPath })
 
   if (error) {
     switch (error._tag) {
@@ -68,7 +69,9 @@ async function loadConfig(): Promise<PrismaConfigInternal> {
       case 'ConfigFileParseError':
         throw new Error(`Failed to parse config file at "${resolvedPath}"`)
       case 'TypeScriptImportFailed':
-        throw new Error(`Failed to import config file as TypeScript from "${resolvedPath}". Error: ${error.error.message}`)
+        throw new Error(
+          `Failed to import config file as TypeScript from "${resolvedPath}". Error: ${error.error.message}`,
+        )
       case 'UnknownError':
         throw new Error(`Unknown error during config file loading: ${error.error.message}`)
       default:
@@ -79,15 +82,9 @@ async function loadConfig(): Promise<PrismaConfigInternal> {
   return config
 }
 
-async function loadPrismaSchema(
-  fsPath: string,
-  allDocuments: TextDocuments<TextDocument>,
-): Promise<PrismaSchema> {
+async function loadPrismaSchema(fsPath: string, allDocuments: TextDocuments<TextDocument>): Promise<PrismaSchema> {
   // `loadRelatedSchemaFiles` locates and returns either a single schema files, or a set of related schema files.
-  const schemaFiles = await loadRelatedSchemaFiles(
-    fsPath,
-    createFilesResolver(allDocuments),
-  )
+  const schemaFiles = await loadRelatedSchemaFiles(fsPath, createFilesResolver(allDocuments))
   const documents = schemaFiles.map(([filePath, content]) => {
     return new SchemaDocument(TextDocument.create(URI.file(filePath).toString(), 'prisma', 1, content))
   })
@@ -110,8 +107,12 @@ export class PrismaSchema {
     return new PrismaSchema([new SchemaDocument(textDocument)])
   }
 
-  static async load(currentDocument: TextDocument, allDocuments: TextDocuments<TextDocument>): Promise<PrismaSchema> {
-    const config = await loadConfig()
+  static async load(
+    currentDocument: TextDocument,
+    allDocuments: TextDocuments<TextDocument>,
+    settings: LSSettings,
+  ): Promise<PrismaSchema> {
+    const config = await loadConfig(settings.configPath)
     if (config instanceof Error) {
       console.debug('Failed to load Prisma config file', config)
       console.log('Continuing without Prisma config file')

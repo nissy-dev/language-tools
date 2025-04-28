@@ -105,19 +105,19 @@ export function startServer(options?: LSOptions): void {
 
   // The global settings, used when the `workspace/configuration` request is not supported by the client or is not set by the user.
   // This does not apply to VS Code, as this client supports this setting.
-  // const defaultSettings: LSSettings = {}
-  // let globalSettings: LSSettings = defaultSettings // eslint-disable-line
+  const defaultSettings: LSSettings = {}
+  let globalSettings: LSSettings = defaultSettings // eslint-disable-line
 
   // Cache the settings of all open documents
   const documentSettings: Map<string, Thenable<LSSettings>> = new Map<string, Thenable<LSSettings>>()
 
-  connection.onDidChangeConfiguration((_change) => {
+  connection.onDidChangeConfiguration((change) => {
     connection.console.info('Configuration changed.')
     if (hasConfigurationCapability) {
       // Reset all cached document settings
       documentSettings.clear()
     } else {
-      // globalSettings = <LSSettings>(change.settings.prisma || defaultSettings) // eslint-disable-line @typescript-eslint/no-unsafe-member-access
+      globalSettings = <LSSettings>(change.settings.prisma || defaultSettings) // eslint-disable-line @typescript-eslint/no-unsafe-member-access
     }
 
     // Revalidate all open prisma schemas
@@ -129,24 +129,22 @@ export function startServer(options?: LSOptions): void {
     documentSettings.delete(e.document.uri)
   })
 
-  // function getDocumentSettings(resource: string): Thenable<LSSettings> {
-  //   if (!hasConfigurationCapability) {
-  //     connection.console.info(
-  //       `hasConfigurationCapability === false. Defaults will be used.`,
-  //     )
-  //     return Promise.resolve(globalSettings)
-  //   }
+  function getDocumentSettings(resource: string): Thenable<LSSettings> {
+    if (!hasConfigurationCapability) {
+      connection.console.info(`hasConfigurationCapability === false. Defaults will be used.`)
+      return Promise.resolve(globalSettings)
+    }
 
-  //   let result = documentSettings.get(resource)
-  //   if (!result) {
-  //     result = connection.workspace.getConfiguration({
-  //       scopeUri: resource,
-  //       section: 'prisma',
-  //     })
-  //     documentSettings.set(resource, result)
-  //   }
-  //   return result
-  // }
+    let result = documentSettings.get(resource)
+    if (!result) {
+      result = connection.workspace.getConfiguration({
+        scopeUri: resource,
+        section: 'prisma',
+      })
+      documentSettings.set(resource, result)
+    }
+    return result
+  }
 
   // Note: VS Code strips newline characters from the message
   function showErrorToast(errorMessage: string): void {
@@ -154,7 +152,8 @@ export function startServer(options?: LSOptions): void {
   }
 
   async function validateTextDocument(textDocument: TextDocument) {
-    const schema = await PrismaSchema.load(textDocument, documents)
+    const settings = await getDocumentSettings(textDocument.uri)
+    const schema = await PrismaSchema.load(textDocument, documents, settings)
     const diagnostics = MessageHandler.handleDiagnosticsRequest(schema, showErrorToast)
     for (const [uri, fileDiagnostics] of diagnostics.entries()) {
       await connection.sendDiagnostics({ uri, diagnostics: fileDiagnostics })
@@ -172,7 +171,8 @@ export function startServer(options?: LSOptions): void {
   connection.onDefinition(async (params: DeclarationParams) => {
     const doc = getDocument(params.textDocument.uri)
     if (doc) {
-      const schema = await PrismaSchema.load(doc, documents)
+      const settings = await getDocumentSettings(doc.uri)
+      const schema = await PrismaSchema.load(doc, documents, settings)
       return MessageHandler.handleDefinitionRequest(schema, doc, params)
     }
   })
@@ -180,7 +180,8 @@ export function startServer(options?: LSOptions): void {
   connection.onCompletion(async (params: CompletionParams) => {
     const doc = getDocument(params.textDocument.uri)
     if (doc) {
-      const schema = await PrismaSchema.load(doc, documents)
+      const settings = await getDocumentSettings(doc.uri)
+      const schema = await PrismaSchema.load(doc, documents, settings)
       return MessageHandler.handleCompletionRequest(schema, doc, params, showErrorToast)
     }
   })
@@ -189,8 +190,8 @@ export function startServer(options?: LSOptions): void {
     const doc = getDocument(params.textDocument.uri)
 
     if (doc) {
-      const schema = await PrismaSchema.load(doc, documents)
-
+      const settings = await getDocumentSettings(doc.uri)
+      const schema = await PrismaSchema.load(doc, documents, settings)
       return MessageHandler.handleReferencesRequest(schema, params, showErrorToast)
     }
   })
@@ -212,7 +213,8 @@ export function startServer(options?: LSOptions): void {
   connection.onHover(async (params: HoverParams) => {
     const doc = getDocument(params.textDocument.uri)
     if (doc) {
-      const schema = await PrismaSchema.load(doc, documents)
+      const settings = await getDocumentSettings(doc.uri)
+      const schema = await PrismaSchema.load(doc, documents, settings)
       return MessageHandler.handleHoverRequest(schema, doc, params, showErrorToast)
     }
   })
@@ -220,7 +222,8 @@ export function startServer(options?: LSOptions): void {
   connection.onDocumentFormatting(async (params: DocumentFormattingParams) => {
     const doc = getDocument(params.textDocument.uri)
     if (doc) {
-      const schema = await PrismaSchema.load(doc, documents)
+      const settings = await getDocumentSettings(doc.uri)
+      const schema = await PrismaSchema.load(doc, documents, settings)
       return MessageHandler.handleDocumentFormatting(schema, doc, params, showErrorToast)
     }
   })
@@ -228,7 +231,8 @@ export function startServer(options?: LSOptions): void {
   connection.onCodeAction(async (params: CodeActionParams) => {
     const doc = getDocument(params.textDocument.uri)
     if (doc) {
-      const schema = await PrismaSchema.load(doc, documents)
+      const settings = await getDocumentSettings(doc.uri)
+      const schema = await PrismaSchema.load(doc, documents, settings)
       return MessageHandler.handleCodeActions(schema, doc, params, showErrorToast)
     }
   })
@@ -236,7 +240,8 @@ export function startServer(options?: LSOptions): void {
   connection.onRenameRequest(async (params: RenameParams) => {
     const doc = getDocument(params.textDocument.uri)
     if (doc) {
-      const schema = await PrismaSchema.load(doc, documents)
+      const settings = await getDocumentSettings(doc.uri)
+      const schema = await PrismaSchema.load(doc, documents, settings)
       return MessageHandler.handleRenameRequest(schema, doc, params)
     }
   })
