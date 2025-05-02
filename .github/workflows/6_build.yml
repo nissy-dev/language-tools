@@ -65,6 +65,8 @@ jobs:
           path: ./packages/vscode/*-${{ matrix.target }}-*.vsix
 
   release:
+    permissions:
+      contents: write
     name: Create release
     runs-on: ubuntu-latest
     timeout-minutes: 5
