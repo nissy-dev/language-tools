@@ -55,7 +55,7 @@ jobs:
       - name: Build all packages
         run: npm run compile
       - name: Replace Readme for marketplace
-        run: node scripts/change_readme.js ${{ github.event.inputs.npm_channel }}
+        run: node scripts/change_readme.js dev
       - name: Build vsix
         run: cd packages/vscode && npm run package -- --target ${{ matrix.target }}
       - name: Upload artifact
@@ -64,50 +64,50 @@ jobs:
           name: vsix-${{ matrix.target }}
           path: ./packages/vscode/*-${{ matrix.target }}.vsix
 
-  release:
-    name: Create release
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    needs: [build]
-    outputs:
-      tag_name: ${{ steps.names.outputs.tag_name }}
-      asset_name: ${{ steps.names.outputs.asset_name }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Print inputs
-        run: |
-          echo ${{github.event.inputs.npm_channel}}
-          echo ${{github.event.inputs.extension_version}}
-          echo ${{github.event.inputs.branch}}
-          echo ${{github.event.inputs.trigger_reason}}
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: vsix-${{ matrix.target }}
-          path: ./vsix
-          merge-multiple: true
-      - name: Get git tag and asset name
-        id: names
-        run: node scripts/get_tag_name.js dev ${{ github.event.inputs.extension_version }}
-      - name: Create release
-        # uses: softprops/action-gh-release@v2
-        # with:
-        #   name: ${{ steps.names.outputs.tag_name }}
-        #   tag_name: ${{ steps.names.outputs.tag_name }}
-        #   files: |
-        #     ./vsix/*.vsix
-        run: |
-          gh release create ${{ steps.names.outputs.tag_name }} \
-            ./vsix/*.vsix \
-            --title ${{ steps.names.outputs.tag_name }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # - name: Trigger next workflow to publish extension
-      #   uses: benc-uk/workflow-dispatch@v1
-      #   with:
-      #     workflow: 7. Publish
-      #     token: ${{ secrets.PRISMA_BOT_TOKEN }}
-      #     inputs: '{ "asset_name": "${{ steps.get_asset_name.outputs.asset_name }}", "tag_name": "${{ steps.names.outputs.tag_name }}", "trigger_reason": "${{github.event.inputs.trigger_reason}}" }'
+  # release:
+  #   name: Create release
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 5
+  #   needs: [build]
+  #   outputs:
+  #     tag_name: ${{ steps.names.outputs.tag_name }}
+  #     asset_name: ${{ steps.names.outputs.asset_name }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Print inputs
+  #       run: |
+  #         echo ${{github.event.inputs.npm_channel}}
+  #         echo ${{github.event.inputs.extension_version}}
+  #         echo ${{github.event.inputs.branch}}
+  #         echo ${{github.event.inputs.trigger_reason}}
+  #     - name: Download artifact
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: vsix-${{ matrix.target }}
+  #         path: ./vsix
+  #         merge-multiple: true
+  #     - name: Get git tag and asset name
+  #       id: names
+  #       run: node scripts/get_tag_name.js dev
+  #     - name: Create release
+  #       # uses: softprops/action-gh-release@v2
+  #       # with:
+  #       #   name: ${{ steps.names.outputs.tag_name }}
+  #       #   tag_name: ${{ steps.names.outputs.tag_name }}
+  #       #   files: |
+  #       #     ./vsix/*.vsix
+  #       run: |
+  #         gh release create ${{ steps.names.outputs.tag_name }} \
+  #           ./vsix/*.vsix \
+  #           --title ${{ steps.names.outputs.tag_name }}
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  # - name: Trigger next workflow to publish extension
+  #   uses: benc-uk/workflow-dispatch@v1
+  #   with:
+  #     workflow: 7. Publish
+  #     token: ${{ secrets.PRISMA_BOT_TOKEN }}
+  #     inputs: '{ "asset_name": "${{ steps.get_asset_name.outputs.asset_name }}", "tag_name": "${{ steps.names.outputs.tag_name }}", "trigger_reason": "${{github.event.inputs.trigger_reason}}" }'
 
   # slack:
   #   name: Send slack notification
