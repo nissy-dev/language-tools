@@ -2,6 +2,9 @@ name: 6. Build extension # and upload as release to GitHub
 run-name: 6. Build extension + upload - ${{ inputs.trigger_reason }}
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       npm_channel:
@@ -42,8 +45,6 @@ jobs:
     timeout-minutes: 7
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.branch }}
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
@@ -73,8 +74,6 @@ jobs:
       asset_name: ${{ steps.names.outputs.asset_name }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.branch }}
       - name: Print inputs
         run: |
           echo ${{github.event.inputs.npm_channel}}
@@ -89,7 +88,7 @@ jobs:
           merge-multiple: true
       - name: Get git tag and asset name
         id: names
-        run: node scripts/get_tag_name.js ${{ github.event.inputs.npm_channel }} ${{ github.event.inputs.extension_version }}
+        run: node scripts/get_tag_name.js dev ${{ github.event.inputs.extension_version }}
       - name: Create release
         # uses: softprops/action-gh-release@v2
         # with:

@@ -1,9 +1,9 @@
 name: 1. Check for Prisma CLI Update
 
 on:
-  push:
-    branches:
-      - main
+  # push:
+  #   branches:
+  #     - main
   # schedule:
   #   - cron: '*/5 * * * *'
   workflow_dispatch:
@@ -40,15 +40,15 @@ jobs:
       #     workflow: 2. Bump versions
       #     token: ${{ secrets.PRISMA_BOT_TOKEN }}
       #     inputs: '{ "npm_channel": "dev", "version": "${{ steps.check_update.outputs.dev_version }}" }'
-      - name: Invoke bump workflow with inputs for latest
-        if: ${{ steps.check_update.outputs.latest_version }}
-        run: |
-          gh workflow run 2_bump_versions.yml \
-            --ref ${{ github.ref }} \
-            --field npm_channel=latest \
-            --field version=${{ steps.check_update.outputs.latest_version }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GIHTHUB_TOKEN }}
+      # - name: Invoke bump workflow with inputs for latest
+      #   if: ${{ steps.check_update.outputs.latest_version }}
+      #   run: |
+      #     gh workflow run 2_bump_versions.yml \
+      #       --ref ${{ github.ref }} \
+      #       --field npm_channel=latest \
+      #       --field version=${{ steps.check_update.outputs.latest_version }}
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GIHTHUB_TOKEN }}
       - name: Invoke bump workflow with inputs for patch-dev
         if: ${{ steps.check_update.outputs.patch_dev_version }}
         run: |
