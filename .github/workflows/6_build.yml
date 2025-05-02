@@ -62,46 +62,29 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: vsix-${{ matrix.target }}
-          path: ./packages/vscode/*-${{ matrix.target }}.vsix
+          path: ./packages/vscode/*-${{ matrix.target }}-*.vsix
 
-  # release:
-  #   name: Create release
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 5
-  #   needs: [build]
-  #   outputs:
-  #     tag_name: ${{ steps.names.outputs.tag_name }}
-  #     asset_name: ${{ steps.names.outputs.asset_name }}
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Print inputs
-  #       run: |
-  #         echo ${{github.event.inputs.npm_channel}}
-  #         echo ${{github.event.inputs.extension_version}}
-  #         echo ${{github.event.inputs.branch}}
-  #         echo ${{github.event.inputs.trigger_reason}}
-  #     - name: Download artifact
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         name: vsix-${{ matrix.target }}
-  #         path: ./vsix
-  #         merge-multiple: true
-  #     - name: Get git tag and asset name
-  #       id: names
-  #       run: node scripts/get_tag_name.js dev
-  #     - name: Create release
-  #       # uses: softprops/action-gh-release@v2
-  #       # with:
-  #       #   name: ${{ steps.names.outputs.tag_name }}
-  #       #   tag_name: ${{ steps.names.outputs.tag_name }}
-  #       #   files: |
-  #       #     ./vsix/*.vsix
-  #       run: |
-  #         gh release create ${{ steps.names.outputs.tag_name }} \
-  #           ./vsix/*.vsix \
-  #           --title ${{ steps.names.outputs.tag_name }}
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  release:
+    name: Create release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [build]
+    outputs:
+      tag_name: ${{ steps.names.outputs.tag_name }}
+      asset_name: ${{ steps.names.outputs.asset_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: vsix-*
+          path: ./vsix
+          merge-multiple: true
+      - name: Create release
+        run: |
+          gh release create Test ./vsix/*.vsix --title Test
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   # - name: Trigger next workflow to publish extension
   #   uses: benc-uk/workflow-dispatch@v1
   #   with:
